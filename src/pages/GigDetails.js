@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import API from '../api/axios';
 import AddReview from '../components/AddReview';
@@ -8,36 +8,32 @@ function GigDetails() {
   const [gig, setGig] = useState(null);
   const [reviews, setReviews] = useState([]);
 
-  // Fetch gig details
-  const fetchGig = async () => {
+  const fetchGig = useCallback(async () => {
     try {
       const res = await API.get(`/gigs/${id}`);
       setGig(res.data);
     } catch (err) {
       alert('Failed to load gig');
     }
-  };
+  }, [id]);
 
-  // Fetch reviews for this gig
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       const res = await API.get(`/reviews/gig/${id}`);
       setReviews(res.data.reviews);
     } catch (err) {
       console.error('Failed to load reviews');
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchGig();
     fetchReviews();
-  }, [id]);
+  }, [fetchGig, fetchReviews]);
 
   const handlePurchase = async () => {
     try {
-      await API.post('/orders', {
-        gigId: gig._id
-      });
+      await API.post('/orders', { gigId: gig._id });
       alert('Order placed successfully');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to place order');
@@ -64,20 +60,13 @@ function GigDetails() {
       {reviews.length === 0 && <p>No reviews yet</p>}
 
       {reviews.map((review) => (
-        <div
-          key={review._id}
-          style={{ border: '1px solid #ddd', margin: '8px', padding: '8px' }}
-        >
+        <div key={review._id}>
           <p><strong>Rating:</strong> {review.rating}</p>
           <p>{review.comment}</p>
         </div>
       ))}
 
-      {/* Add Review (backend enforces client + completed order) */}
-      <AddReview
-        orderId={reviews[0]?.order}
-        onSuccess={fetchReviews}
-      />
+      <AddReview onSuccess={fetchReviews} />
     </div>
   );
 }
